@@ -25,7 +25,6 @@ function gifFilename(now: Date = new Date()) {
 
 export default function App() {
   const { engine, tool, setTool, notify } = useApp()
-  const history = useHistory(engine)
   const gallery = useGallery()
 
   const [onionEnabled, setOnionEnabled] = useState(false)
@@ -48,10 +47,36 @@ export default function App() {
     onError: reportError,
   })
 
+  const {
+    commitCurrentFrame,
+    goToFrame,
+    prevFrame,
+    nextFrame,
+    togglePlay,
+    newAnimation: animNewAnimation,
+    currentFrameId,
+    currentIndex,
+    frames,
+    playing,
+    ready: animReady,
+  } = anim
+
+  const history = useHistory(engine, currentFrameId)
+  const {
+    push: historyPush,
+    undo: historyUndo,
+    redo: historyRedo,
+    canUndo,
+    canRedo,
+    ensureBaseline,
+    dropFrame,
+    clearAll: historyClearAll,
+  } = history
+
   useEffect(() => {
-    if (!anim.ready) return
-    history.reset()
-  }, [anim.ready, anim.currentIndex, history])
+    if (!animReady || !currentFrameId) return
+    ensureBaseline(currentFrameId)
+  }, [animReady, currentFrameId, ensureBaseline])
 
   useEffect(() => {
     if (!localStorage.getItem(HELP_SEEN_KEY)) {
@@ -61,9 +86,9 @@ export default function App() {
   }, [])
 
   const handleStrokeEnd = useCallback(async () => {
-    await anim.commitCurrentFrame()
-    await history.push()
-  }, [anim, history])
+    await commitCurrentFrame()
+    await historyPush()
+  }, [commitCurrentFrame, historyPush])
 
   const handleClear = useCallback(() => {
     setConfirmClearOpen(true)
@@ -71,11 +96,11 @@ export default function App() {
 
   const confirmClear = useCallback(async () => {
     engine.clear()
-    await anim.commitCurrentFrame()
-    await history.push()
+    await commitCurrentFrame()
+    await historyPush()
     setConfirmClearOpen(false)
     notify('Frame cleared', 'info')
-  }, [engine, anim, history, notify])
+  }, [engine, commitCurrentFrame, historyPush, notify])
 
   const handleExport = useCallback(async () => {
     const blob = await engine.toExportBlob()
@@ -127,8 +152,8 @@ export default function App() {
   }, [engine, gallery, notify])
 
   const handleExportGif = useCallback(async () => {
-    if (anim.frames.length < 1) return
-    if (anim.frames.length === 1) {
+    if (frames.length < 1) return
+    if (frames.length === 1) {
       notify('Add more frames first — press ▶▶ to make a new frame.', 'info')
       return
     }
@@ -136,7 +161,7 @@ export default function App() {
     notify('Building GIF…', 'info')
     try {
       const blob = await encodeAnimationToGif(
-        anim.frames,
+        frames,
         engine.canvas?.width ?? 1600,
         engine.canvas?.height ?? 1000,
         { fps: DEFAULT_FPS },
@@ -159,7 +184,7 @@ export default function App() {
     } finally {
       setExporting(false)
     }
-  }, [anim.frames, engine, notify])
+  }, [frames, engine, notify])
 
   const handleOpenArtwork = useCallback(
     async (id: string) => {
@@ -167,8 +192,11 @@ export default function App() {
         const record = await gallery.get(id)
         if (!record) return
         await engine.restoreFromBlob(record.full)
-        await anim.commitCurrentFrame()
-        await history.reset()
+        await commitCurrentFrame()
+        if (currentFrameId) {
+          dropFrame(currentFrameId)
+          await ensureBaseline(currentFrameId)
+        }
         setGalleryOpen(false)
         notify(`Opened: ${record.title}`, 'info')
       } catch (e) {
@@ -178,7 +206,7 @@ export default function App() {
         )
       }
     },
-    [engine, gallery, anim, history, notify],
+    [engine, gallery, commitCurrentFrame, currentFrameId, dropFrame, ensureBaseline, notify],
   )
 
   const handleDeleteArtwork = useCallback(
@@ -194,11 +222,11 @@ export default function App() {
   }, [])
 
   const confirmNewAnimation = useCallback(async () => {
-    await anim.newAnimation()
-    await history.reset()
+    historyClearAll()
+    await animNewAnimation()
     setConfirmNewAnimOpen(false)
     notify('New animation started', 'info')
-  }, [anim, history, notify])
+  }, [animNewAnimation, historyClearAll, notify])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -208,8 +236,8 @@ export default function App() {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
-        if (e.shiftKey) history.redo()
-        else history.undo()
+        if (e.shiftKey) historyRedo()
+        else historyUndo()
         return
       }
       if (mod) return
@@ -236,34 +264,45 @@ export default function App() {
           setHelpOpen(true)
           break
         case 'arrowleft':
-          anim.prevFrame()
+          prevFrame()
           break
         case 'arrowright':
-          anim.nextFrame()
+          nextFrame()
           break
         case ' ':
           e.preventDefault()
-          anim.togglePlay()
+          togglePlay()
           break
         case 'o':
-          if (anim.currentIndex > 0) setOnionEnabled((v) => !v)
+          if (currentIndex > 0) setOnionEnabled((v) => !v)
           break
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [history, setTool, tool.brushSize, handleSave, handleExport, anim])
+  }, [
+    historyRedo,
+    historyUndo,
+    setTool,
+    tool.brushSize,
+    handleSave,
+    handleExport,
+    prevFrame,
+    nextFrame,
+    togglePlay,
+    currentIndex,
+  ])
 
-  const drawingDisabled = anim.playing || !anim.ready
-  const canUseOnion = anim.currentIndex > 0 && !anim.playing
+  const drawingDisabled = playing || !animReady
+  const canUseOnion = currentIndex > 0 && !playing
 
   return (
     <div className="app">
       <Toolbar
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        onUndo={history.undo}
-        onRedo={history.redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={historyUndo}
+        onRedo={historyRedo}
         onClear={handleClear}
         onSave={handleSave}
         onExport={handleExport}
@@ -273,12 +312,12 @@ export default function App() {
       />
 
       <FrameDeck
-        currentIndex={anim.currentIndex}
-        totalFrames={anim.frames.length}
-        playing={anim.playing}
-        onPrev={anim.prevFrame}
-        onNext={anim.nextFrame}
-        onTogglePlay={anim.togglePlay}
+        currentIndex={currentIndex}
+        totalFrames={frames.length}
+        playing={playing}
+        onPrev={prevFrame}
+        onNext={nextFrame}
+        onTogglePlay={togglePlay}
         onNewAnimation={handleNewAnimation}
         onExportGif={handleExportGif}
         exporting={exporting}
@@ -302,10 +341,10 @@ export default function App() {
       </main>
 
       <Filmstrip
-        frames={anim.frames}
-        currentIndex={anim.currentIndex}
-        onSelect={anim.goToFrame}
-        disabled={anim.playing}
+        frames={frames}
+        currentIndex={currentIndex}
+        onSelect={goToFrame}
+        disabled={playing}
       />
 
       <ConfirmDialog

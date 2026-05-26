@@ -1,69 +1,122 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { DrawingEngine } from '../lib/drawingEngine'
 
 const HISTORY_CAP = 50
 
-interface HistoryAPI {
+interface FrameStack {
+  undo: ImageBitmap[]
+  redo: ImageBitmap[]
+}
+
+export interface HistoryAPI {
   push: () => Promise<void>
   undo: () => void
   redo: () => void
   canUndo: boolean
   canRedo: boolean
-  reset: () => Promise<void>
+  ensureBaseline: (frameId: string) => Promise<void>
+  dropFrame: (frameId: string) => void
+  clearAll: () => void
 }
 
-export function useHistory(engine: DrawingEngine): HistoryAPI {
-  const undoStack = useRef<ImageBitmap[]>([])
-  const redoStack = useRef<ImageBitmap[]>([])
-  const [, force] = useState(0)
-  const bump = useCallback(() => force((n) => n + 1), [])
+export function useHistory(
+  engine: DrawingEngine,
+  frameId: string | undefined,
+): HistoryAPI {
+  const stacks = useRef<Map<string, FrameStack>>(new Map())
+  const [, setVersion] = useState(0)
+  const bump = useCallback(() => setVersion((v) => v + 1), [])
+
+  const ensureStack = useCallback((id: string): FrameStack => {
+    let s = stacks.current.get(id)
+    if (!s) {
+      s = { undo: [], redo: [] }
+      stacks.current.set(id, s)
+    }
+    return s
+  }, [])
 
   const push = useCallback(async () => {
+    if (!frameId) return
     const snap = await engine.snapshot()
     if (!snap) return
-    undoStack.current.push(snap)
-    if (undoStack.current.length > HISTORY_CAP) {
-      const dropped = undoStack.current.shift()
+    const s = ensureStack(frameId)
+    s.undo.push(snap)
+    if (s.undo.length > HISTORY_CAP) {
+      const dropped = s.undo.shift()
       dropped?.close?.()
     }
-    redoStack.current.forEach((b) => b.close?.())
-    redoStack.current = []
+    s.redo.forEach((b) => b.close?.())
+    s.redo = []
     bump()
-  }, [engine, bump])
+  }, [engine, frameId, ensureStack, bump])
 
   const undo = useCallback(() => {
-    if (undoStack.current.length <= 1) return
-    const current = undoStack.current.pop()
-    if (current) redoStack.current.push(current)
-    const prev = undoStack.current[undoStack.current.length - 1]
+    if (!frameId) return
+    const s = stacks.current.get(frameId)
+    if (!s || s.undo.length <= 1) return
+    const current = s.undo.pop()
+    if (current) s.redo.push(current)
+    const prev = s.undo[s.undo.length - 1]
     if (prev) engine.restore(prev)
     bump()
-  }, [engine, bump])
+  }, [engine, frameId, bump])
 
   const redo = useCallback(() => {
-    const next = redoStack.current.pop()
+    if (!frameId) return
+    const s = stacks.current.get(frameId)
+    if (!s || s.redo.length === 0) return
+    const next = s.redo.pop()
     if (!next) return
     engine.restore(next)
-    undoStack.current.push(next)
+    s.undo.push(next)
     bump()
-  }, [engine, bump])
+  }, [engine, frameId, bump])
 
-  const reset = useCallback(async () => {
-    undoStack.current.forEach((b) => b.close?.())
-    redoStack.current.forEach((b) => b.close?.())
-    undoStack.current = []
-    redoStack.current = []
-    const snap = await engine.snapshot()
-    if (snap) undoStack.current.push(snap)
+  const ensureBaseline = useCallback(
+    async (id: string) => {
+      const s = ensureStack(id)
+      if (s.undo.length > 0) return
+      const snap = await engine.snapshot()
+      if (!snap) return
+      s.undo.push(snap)
+      bump()
+    },
+    [engine, ensureStack, bump],
+  )
+
+  const dropFrame = useCallback((id: string) => {
+    const s = stacks.current.get(id)
+    if (!s) return
+    s.undo.forEach((b) => b.close?.())
+    s.redo.forEach((b) => b.close?.())
+    stacks.current.delete(id)
+  }, [])
+
+  const clearAll = useCallback(() => {
+    for (const s of stacks.current.values()) {
+      s.undo.forEach((b) => b.close?.())
+      s.redo.forEach((b) => b.close?.())
+    }
+    stacks.current.clear()
     bump()
-  }, [engine, bump])
+  }, [bump])
 
-  return {
-    push,
-    undo,
-    redo,
-    reset,
-    canUndo: undoStack.current.length > 1,
-    canRedo: redoStack.current.length > 0,
-  }
+  const current = frameId ? stacks.current.get(frameId) : undefined
+  const canUndo = (current?.undo.length ?? 0) > 1
+  const canRedo = (current?.redo.length ?? 0) > 0
+
+  return useMemo<HistoryAPI>(
+    () => ({
+      push,
+      undo,
+      redo,
+      canUndo,
+      canRedo,
+      ensureBaseline,
+      dropFrame,
+      clearAll,
+    }),
+    [push, undo, redo, canUndo, canRedo, ensureBaseline, dropFrame, clearAll],
+  )
 }

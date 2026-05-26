@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   loadCurrentAnimation,
   saveCurrentAnimation,
@@ -11,7 +11,7 @@ import {
 } from '../lib/drawingEngine'
 import { DEFAULT_FPS, MAX_FRAMES, type FrameRecord } from '../types'
 
-const SAVE_DEBOUNCE_MS = 600
+const SAVE_DEBOUNCE_MS = 1500
 
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -86,28 +86,35 @@ export function useAnimation({
     [engine, drawOnionFor],
   )
 
+  const loadedRef = useRef(false)
   useEffect(() => {
+    if (loadedRef.current) return
+    loadedRef.current = true
     let cancelled = false
     ;(async () => {
       try {
         const doc = await loadCurrentAnimation()
         if (cancelled) return
         if (doc && doc.frames.length > 0) {
-          setFrames(doc.frames)
           const idx = Math.min(doc.currentIndex, doc.frames.length - 1)
           framesRef.current = doc.frames
           currentIndexRef.current = idx
+          setFrames(doc.frames)
           setCurrentIndex(idx)
           await engine.loadFrame(doc.frames[idx].blob)
+          if (cancelled) return
         } else {
           const blob = await engine.toFrameBlob()
+          if (cancelled) return
           const thumbnail = await engine.generateThumbnailFromBlob(blob)
+          if (cancelled) return
           const initial: FrameRecord = { id: uid(), blob: blob!, thumbnail }
-          setFrames([initial])
           framesRef.current = [initial]
+          setFrames([initial])
         }
         setReady(true)
       } catch (e) {
+        if (cancelled) return
         onError(e instanceof Error ? e.message : 'Failed to load animation')
         setReady(true)
       }
@@ -251,16 +258,34 @@ export function useAnimation({
     setPlaying((p) => !p)
   }, [onError])
 
-  return {
-    frames,
-    currentIndex,
-    playing,
-    ready,
-    commitCurrentFrame,
-    goToFrame,
-    prevFrame,
-    nextFrame,
-    togglePlay,
-    newAnimation,
-  }
+  const currentFrameId = frames[currentIndex]?.id
+
+  return useMemo(
+    () => ({
+      frames,
+      currentIndex,
+      currentFrameId,
+      playing,
+      ready,
+      commitCurrentFrame,
+      goToFrame,
+      prevFrame,
+      nextFrame,
+      togglePlay,
+      newAnimation,
+    }),
+    [
+      frames,
+      currentIndex,
+      currentFrameId,
+      playing,
+      ready,
+      commitCurrentFrame,
+      goToFrame,
+      prevFrame,
+      nextFrame,
+      togglePlay,
+      newAnimation,
+    ],
+  )
 }
