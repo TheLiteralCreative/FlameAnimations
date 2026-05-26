@@ -551,6 +551,34 @@ kbd {
   margin-bottom: 6px;
 }
 
+.hero-closer {
+  margin: 18px 0 0;
+  padding: 16px 18px 14px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  line-height: 1.55;
+}
+
+.hero-closer p {
+  margin: 0;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--accent-strong);
+}
+
+.hero-closer strong {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.hero-closer-signoff {
+  margin-top: 10px !important;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--text-muted) !important;
+  letter-spacing: 0.04em;
+}
+
 /* ---------- Gallery ---------- */
 
 .gallery-grid {

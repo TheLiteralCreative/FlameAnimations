@@ -88,6 +88,21 @@ export function HelpModal({ open, onClose }: Props) {
               </li>
             </ul>
           </details>
+
+          <div className="hero-closer">
+            <p>
+              Emmett,
+              <br />
+              <strong>FLAME ANIMATIONS</strong> belongs to <strong>YOU</strong>…
+              <br />
+              It can be <strong>WHATEVER YOU WANT IT TO BE</strong>.
+              <br />
+              If you can dream it and explain it, you can build it.
+              <br />
+              The only limit is <strong>YOUR IMAGINATION</strong>.
+            </p>
+            <p className="hero-closer-signoff">— Love, DAD</p>
+          </div>
         </div>
       </div>
     </div>
