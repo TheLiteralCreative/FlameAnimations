@@ -36,15 +36,11 @@ export function HelpModal({ open, onClose }: Props) {
           >
             <Icon name="x" />
           </button>
-          <div className="help-hero-text">
-            <h2 className="hero-welcome">
-              Welcome to your very own website Emmett!
-            </h2>
-            <h1 id="help-title" className="hero-title">
-              <Icon name="flame" size={32} />
-              <span>FLAME ANIMATIONS</span>
-            </h1>
-          </div>
+          <h1 id="help-title" className="hero-title">
+            <Icon name="flame" size={40} />
+            <span>FLAME ANIMATIONS</span>
+            <Icon name="flame" size={40} />
+          </h1>
         </div>
         <div className="help-body">
           <p>Draw with a finger, an Apple Pencil, a trackpad, or a mouse.</p>
