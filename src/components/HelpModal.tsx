@@ -61,6 +61,11 @@ export function HelpModal({ open, onClose }: Props) {
               <strong>Undo</strong> and <strong>Redo</strong> let you go back
               and forward through your strokes.
             </li>
+            <li>
+              <strong>Save Frame</strong> keeps the current picture in your
+              gallery on this device. <strong>PNG</strong> downloads it as a
+              file you can share.
+            </li>
           </ul>
           <h3 className="help-section-title">Make an animation</h3>
           <ul>
