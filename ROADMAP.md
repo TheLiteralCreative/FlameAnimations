@@ -63,6 +63,16 @@ See SPEC §3, §5, §9, §10; ADR-0002, ADR-0005.
 - [x] Add PWA manifest and app icons.
 - [x] Add simple help overlay.
 
+## M5 — Frame-Based Animation
+- [x] Refactor engine for transparent strokes + separate background.
+- [x] Up to 500-frame animations, persisted in IndexedDB.
+- [x] Frame deck (prev/play/next, counter, new, export).
+- [x] Filmstrip with click-to-jump.
+- [x] Onion-skin overlay with opacity slider.
+- [x] 24 fps playback loop.
+- [x] GIF export via gifenc.
+- [x] Keyboard shortcuts (arrows, space, O).
+
 Acceptance:
 - Camera/photo import either works on target browsers or is clearly deferred.
 - App can be launched comfortably from iPad home screen if PWA is enabled.

@@ -23,6 +23,13 @@ export type IconName =
   | 'check'
   | 'flame'
   | 'pressure'
+  | 'stepBack'
+  | 'stepForward'
+  | 'play'
+  | 'stop'
+  | 'film'
+  | 'newFile'
+  | 'onion'
 
 const PATHS: Record<IconName, ReactNode> = {
   brush: (
@@ -111,6 +118,50 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M3 21h18" />
       <path d="M5 17l4-12 4 6 3-3 3 9" />
+    </>
+  ),
+  stepBack: (
+    <>
+      <polygon points="19,5 8,12 19,19" fill="currentColor" stroke="none" />
+      <line x1="5" y1="5" x2="5" y2="19" />
+    </>
+  ),
+  stepForward: (
+    <>
+      <polygon points="5,5 16,12 5,19" fill="currentColor" stroke="none" />
+      <line x1="19" y1="5" x2="19" y2="19" />
+    </>
+  ),
+  play: (
+    <polygon points="6,4 20,12 6,20" fill="currentColor" stroke="none" />
+  ),
+  stop: (
+    <rect x="5" y="5" width="14" height="14" rx="1.5" fill="currentColor" stroke="none" />
+  ),
+  film: (
+    <>
+      <rect x="2.5" y="4" width="19" height="16" rx="2" />
+      <line x1="7" y1="4" x2="7" y2="20" />
+      <line x1="17" y1="4" x2="17" y2="20" />
+      <line x1="2.5" y1="9" x2="7" y2="9" />
+      <line x1="2.5" y1="15" x2="7" y2="15" />
+      <line x1="17" y1="9" x2="21.5" y2="9" />
+      <line x1="17" y1="15" x2="21.5" y2="15" />
+    </>
+  ),
+  newFile: (
+    <>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="12" y1="13" x2="12" y2="19" />
+      <line x1="9" y1="16" x2="15" y2="16" />
+    </>
+  ),
+  onion: (
+    <>
+      <ellipse cx="12" cy="12" rx="9" ry="5" />
+      <ellipse cx="12" cy="12" rx="9" ry="5" transform="rotate(60 12 12)" />
+      <ellipse cx="12" cy="12" rx="9" ry="5" transform="rotate(120 12 12)" />
     </>
   ),
 }

@@ -1,19 +1,25 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useApp } from '../state/AppContext'
 
 interface CanvasProps {
   onStrokeEnd: () => void
+  drawingEnabled: boolean
+  overlay?: ReactNode
 }
 
-export function Canvas({ onStrokeEnd }: CanvasProps) {
+export function Canvas({ onStrokeEnd, drawingEnabled, overlay }: CanvasProps) {
   const { engine } = useApp()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const onionRef = useRef<HTMLCanvasElement | null>(null)
   const activePointerId = useRef<number | null>(null)
+  const enabledRef = useRef(drawingEnabled)
+  enabledRef.current = drawingEnabled
 
   useEffect(() => {
     const canvas = canvasRef.current
+    const onion = onionRef.current
     if (!canvas) return
-    engine.attach(canvas)
+    engine.attach(canvas, onion ?? undefined)
   }, [engine])
 
   useEffect(() => {
@@ -21,6 +27,7 @@ export function Canvas({ onStrokeEnd }: CanvasProps) {
     if (!canvas) return
 
     const onPointerDown = (e: PointerEvent) => {
+      if (!enabledRef.current) return
       if (activePointerId.current !== null) return
       canvas.setPointerCapture(e.pointerId)
       activePointerId.current = e.pointerId
@@ -67,7 +74,12 @@ export function Canvas({ onStrokeEnd }: CanvasProps) {
 
   return (
     <div className="canvas-frame">
-      <canvas ref={canvasRef} className="drawing-canvas" />
+      <div className="canvas-stack">
+        <div className="canvas-bg" aria-hidden="true" />
+        <canvas ref={onionRef} className="onion-canvas" aria-hidden="true" />
+        <canvas ref={canvasRef} className="drawing-canvas" />
+        {overlay}
+      </div>
     </div>
   )
 }

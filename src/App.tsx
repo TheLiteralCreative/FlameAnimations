@@ -1,32 +1,57 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Canvas } from './components/Canvas'
 import { Toolbar } from './components/Toolbar'
 import { Gallery } from './components/Gallery'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { HelpModal } from './components/HelpModal'
 import { ToastStack } from './components/Toast'
+import { FrameDeck } from './components/FrameDeck'
+import { Filmstrip } from './components/Filmstrip'
+import { OnionControls } from './components/OnionControls'
 import { useApp } from './state/AppContext'
 import { useHistory } from './hooks/useHistory'
 import { useGallery } from './hooks/useGallery'
+import { useAnimation } from './hooks/useAnimation'
 import { defaultArtworkTitle, pngFilename } from './lib/filename'
+import { encodeAnimationToGif } from './lib/exportGif'
+import { MAX_FRAMES, DEFAULT_FPS } from './types'
 
 const HELP_SEEN_KEY = 'flameanimations.helpSeen'
+
+function gifFilename(now: Date = new Date()) {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `flameanimations-anim-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.gif`
+}
 
 export default function App() {
   const { engine, tool, setTool, notify } = useApp()
   const history = useHistory(engine)
   const gallery = useGallery()
 
+  const [onionEnabled, setOnionEnabled] = useState(false)
+  const [onionOpacity, setOnionOpacity] = useState(0.4)
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
+  const [confirmNewAnimOpen, setConfirmNewAnimOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const initialSnapshotTaken = useRef(false)
+  const [exporting, setExporting] = useState(false)
+
+  const reportError = useCallback(
+    (msg: string) => notify(msg, 'error'),
+    [notify],
+  )
+
+  const anim = useAnimation({
+    engine,
+    onionEnabled,
+    onionOpacity,
+    onError: reportError,
+  })
 
   useEffect(() => {
-    if (initialSnapshotTaken.current) return
-    initialSnapshotTaken.current = true
+    if (!anim.ready) return
     history.reset()
-  }, [history])
+  }, [anim.ready, anim.currentIndex, history])
 
   useEffect(() => {
     if (!localStorage.getItem(HELP_SEEN_KEY)) {
@@ -35,9 +60,10 @@ export default function App() {
     }
   }, [])
 
-  const handleStrokeEnd = useCallback(() => {
-    history.push()
-  }, [history])
+  const handleStrokeEnd = useCallback(async () => {
+    await anim.commitCurrentFrame()
+    await history.push()
+  }, [anim, history])
 
   const handleClear = useCallback(() => {
     setConfirmClearOpen(true)
@@ -45,13 +71,14 @@ export default function App() {
 
   const confirmClear = useCallback(async () => {
     engine.clear()
+    await anim.commitCurrentFrame()
     await history.push()
     setConfirmClearOpen(false)
-    notify('Canvas cleared', 'info')
-  }, [engine, history, notify])
+    notify('Frame cleared', 'info')
+  }, [engine, anim, history, notify])
 
   const handleExport = useCallback(async () => {
-    const blob = await engine.toBlob()
+    const blob = await engine.toExportBlob()
     if (!blob) {
       notify('Could not export. Please try again.', 'error')
       return
@@ -69,7 +96,7 @@ export default function App() {
 
   const handleSave = useCallback(async () => {
     try {
-      const blob = await engine.toBlob()
+      const blob = await engine.toExportBlob()
       if (!blob) {
         notify('Could not save. Please try again.', 'error')
         return
@@ -90,7 +117,7 @@ export default function App() {
         thumbnail: thumb,
         full: blob,
       })
-      notify('Saved to gallery', 'success')
+      notify('Frame saved to gallery', 'success')
     } catch (e) {
       notify(
         e instanceof Error ? `Save failed: ${e.message}` : 'Save failed',
@@ -99,12 +126,48 @@ export default function App() {
     }
   }, [engine, gallery, notify])
 
+  const handleExportGif = useCallback(async () => {
+    if (anim.frames.length < 1) return
+    if (anim.frames.length === 1) {
+      notify('Add more frames first — press ▶▶ to make a new frame.', 'info')
+      return
+    }
+    setExporting(true)
+    notify('Building GIF…', 'info')
+    try {
+      const blob = await encodeAnimationToGif(
+        anim.frames,
+        engine.canvas?.width ?? 1600,
+        engine.canvas?.height ?? 1000,
+        { fps: DEFAULT_FPS },
+        engine,
+      )
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = gifFilename()
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      notify('GIF downloaded!', 'success')
+    } catch (e) {
+      notify(
+        e instanceof Error ? `GIF export failed: ${e.message}` : 'GIF export failed',
+        'error',
+      )
+    } finally {
+      setExporting(false)
+    }
+  }, [anim.frames, engine, notify])
+
   const handleOpenArtwork = useCallback(
     async (id: string) => {
       try {
         const record = await gallery.get(id)
         if (!record) return
         await engine.restoreFromBlob(record.full)
+        await anim.commitCurrentFrame()
         await history.reset()
         setGalleryOpen(false)
         notify(`Opened: ${record.title}`, 'info')
@@ -115,7 +178,7 @@ export default function App() {
         )
       }
     },
-    [engine, gallery, history, notify],
+    [engine, gallery, anim, history, notify],
   )
 
   const handleDeleteArtwork = useCallback(
@@ -125,6 +188,17 @@ export default function App() {
     },
     [gallery, notify],
   )
+
+  const handleNewAnimation = useCallback(() => {
+    setConfirmNewAnimOpen(true)
+  }, [])
+
+  const confirmNewAnimation = useCallback(async () => {
+    await anim.newAnimation()
+    await history.reset()
+    setConfirmNewAnimOpen(false)
+    notify('New animation started', 'info')
+  }, [anim, history, notify])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -161,11 +235,27 @@ export default function App() {
         case '?':
           setHelpOpen(true)
           break
+        case 'arrowleft':
+          anim.prevFrame()
+          break
+        case 'arrowright':
+          anim.nextFrame()
+          break
+        case ' ':
+          e.preventDefault()
+          anim.togglePlay()
+          break
+        case 'o':
+          if (anim.currentIndex > 0) setOnionEnabled((v) => !v)
+          break
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [history, setTool, tool.brushSize, handleSave, handleExport])
+  }, [history, setTool, tool.brushSize, handleSave, handleExport, anim])
+
+  const drawingDisabled = anim.playing || !anim.ready
+  const canUseOnion = anim.currentIndex > 0 && !anim.playing
 
   return (
     <div className="app">
@@ -179,20 +269,65 @@ export default function App() {
         onExport={handleExport}
         onOpenGallery={() => setGalleryOpen(true)}
         onOpenHelp={() => setHelpOpen(true)}
+        disabled={drawingDisabled}
       />
+
+      <FrameDeck
+        currentIndex={anim.currentIndex}
+        totalFrames={anim.frames.length}
+        playing={anim.playing}
+        onPrev={anim.prevFrame}
+        onNext={anim.nextFrame}
+        onTogglePlay={anim.togglePlay}
+        onNewAnimation={handleNewAnimation}
+        onExportGif={handleExportGif}
+        exporting={exporting}
+        maxFrames={MAX_FRAMES}
+      />
+
       <main className="stage">
-        <Canvas onStrokeEnd={handleStrokeEnd} />
+        <Canvas
+          onStrokeEnd={handleStrokeEnd}
+          drawingEnabled={!drawingDisabled}
+          overlay={
+            <OnionControls
+              enabled={onionEnabled}
+              opacity={onionOpacity}
+              canUse={canUseOnion}
+              onToggle={() => setOnionEnabled((v) => !v)}
+              onOpacityChange={setOnionOpacity}
+            />
+          }
+        />
       </main>
+
+      <Filmstrip
+        frames={anim.frames}
+        currentIndex={anim.currentIndex}
+        onSelect={anim.goToFrame}
+        disabled={anim.playing}
+      />
 
       <ConfirmDialog
         open={confirmClearOpen}
-        title="Clear the canvas?"
-        message="This will erase everything currently on the canvas. Your saved gallery is safe."
-        confirmLabel="Clear"
+        title="Clear this frame?"
+        message="This erases the current frame only. Other frames are safe."
+        confirmLabel="Clear frame"
         cancelLabel="Keep drawing"
         destructive
         onConfirm={confirmClear}
         onCancel={() => setConfirmClearOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmNewAnimOpen}
+        title="Start a brand new animation?"
+        message="All your current frames will be deleted. Make sure you exported a GIF first if you want to keep them."
+        confirmLabel="Start fresh"
+        cancelLabel="Keep my animation"
+        destructive
+        onConfirm={confirmNewAnimation}
+        onCancel={() => setConfirmNewAnimOpen(false)}
       />
 
       <Gallery

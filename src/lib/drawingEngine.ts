@@ -13,6 +13,8 @@ interface StrokePoint {
 export class DrawingEngine {
   canvas: HTMLCanvasElement | null = null
   ctx: CanvasRenderingContext2D | null = null
+  onionCanvas: HTMLCanvasElement | null = null
+  onionCtx: CanvasRenderingContext2D | null = null
   private drawing = false
   private last: StrokePoint | null = null
   private color = '#000000'
@@ -21,14 +23,21 @@ export class DrawingEngine {
   private mode: Mode = 'draw'
   private pressureSensitive = true
 
-  attach(canvas: HTMLCanvasElement) {
+  attach(canvas: HTMLCanvasElement, onionCanvas?: HTMLCanvasElement) {
     this.canvas = canvas
     canvas.width = CANVAS_WIDTH
     canvas.height = CANVAS_HEIGHT
     const ctx = canvas.getContext('2d', { willReadFrequently: false })
     if (!ctx) throw new Error('2D canvas context unavailable')
     this.ctx = ctx
-    this.fillBackground()
+    this.clear()
+
+    if (onionCanvas) {
+      this.onionCanvas = onionCanvas
+      onionCanvas.width = CANVAS_WIDTH
+      onionCanvas.height = CANVAS_HEIGHT
+      this.onionCtx = onionCanvas.getContext('2d')
+    }
   }
 
   setTool(tool: ToolState) {
@@ -39,17 +48,31 @@ export class DrawingEngine {
     this.pressureSensitive = tool.pressureSensitive
   }
 
-  fillBackground() {
+  clear() {
     if (!this.ctx || !this.canvas) return
-    this.ctx.save()
-    this.ctx.globalCompositeOperation = 'source-over'
-    this.ctx.fillStyle = BACKGROUND
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-    this.ctx.restore()
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
   }
 
-  clear() {
-    this.fillBackground()
+  clearOnion() {
+    if (!this.onionCtx || !this.onionCanvas) return
+    this.onionCtx.clearRect(0, 0, this.onionCanvas.width, this.onionCanvas.height)
+  }
+
+  async drawOnion(blob: Blob, opacity: number) {
+    if (!this.onionCtx || !this.onionCanvas) return
+    this.clearOnion()
+    const bitmap = await createImageBitmap(blob)
+    this.onionCtx.save()
+    this.onionCtx.globalAlpha = opacity
+    this.onionCtx.drawImage(
+      bitmap,
+      0,
+      0,
+      this.onionCanvas.width,
+      this.onionCanvas.height,
+    )
+    this.onionCtx.restore()
+    bitmap.close?.()
   }
 
   private applyStrokeStyle() {
@@ -123,23 +146,62 @@ export class DrawingEngine {
     const ctx = this.ctx
     const canvas = this.canvas
     if (!ctx || !canvas) return
-    ctx.save()
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.fillStyle = BACKGROUND
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-    ctx.restore()
   }
 
   async restoreFromBlob(blob: Blob) {
     const bitmap = await createImageBitmap(blob)
     this.restore(bitmap)
+    bitmap.close?.()
   }
 
-  async toBlob(type = 'image/png'): Promise<Blob | null> {
+  async loadFrame(blob: Blob | null) {
+    const ctx = this.ctx
+    const canvas = this.canvas
+    if (!ctx || !canvas) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    if (!blob) return
+    const bitmap = await createImageBitmap(blob)
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close?.()
+  }
+
+  async toFrameBlob(type = 'image/png'): Promise<Blob | null> {
     const canvas = this.canvas
     if (!canvas) return null
     return await new Promise((resolve) => canvas.toBlob(resolve, type))
+  }
+
+  async toExportBlob(type = 'image/png'): Promise<Blob | null> {
+    const canvas = this.canvas
+    if (!canvas) return null
+    const off = document.createElement('canvas')
+    off.width = canvas.width
+    off.height = canvas.height
+    const octx = off.getContext('2d')
+    if (!octx) return null
+    octx.fillStyle = BACKGROUND
+    octx.fillRect(0, 0, off.width, off.height)
+    octx.drawImage(canvas, 0, 0)
+    return await new Promise((resolve) => off.toBlob(resolve, type))
+  }
+
+  async compositeFrame(
+    frameBlob: Blob,
+    width: number,
+    height: number,
+  ): Promise<HTMLCanvasElement> {
+    const off = document.createElement('canvas')
+    off.width = width
+    off.height = height
+    const octx = off.getContext('2d')!
+    octx.fillStyle = BACKGROUND
+    octx.fillRect(0, 0, width, height)
+    const bitmap = await createImageBitmap(frameBlob)
+    octx.drawImage(bitmap, 0, 0, width, height)
+    bitmap.close?.()
+    return off
   }
 
   generateThumbnail(maxDim = 256): string {
@@ -156,6 +218,28 @@ export class DrawingEngine {
     octx.fillStyle = BACKGROUND
     octx.fillRect(0, 0, w, h)
     octx.drawImage(canvas, 0, 0, w, h)
+    return off.toDataURL('image/png')
+  }
+
+  async generateThumbnailFromBlob(
+    blob: Blob | null,
+    maxDim = 96,
+  ): Promise<string> {
+    const ratio = CANVAS_WIDTH / CANVAS_HEIGHT
+    const w = ratio >= 1 ? maxDim : Math.round(maxDim * ratio)
+    const h = ratio >= 1 ? Math.round(maxDim / ratio) : maxDim
+    const off = document.createElement('canvas')
+    off.width = w
+    off.height = h
+    const octx = off.getContext('2d')
+    if (!octx) return ''
+    octx.fillStyle = BACKGROUND
+    octx.fillRect(0, 0, w, h)
+    if (blob) {
+      const bitmap = await createImageBitmap(blob)
+      octx.drawImage(bitmap, 0, 0, w, h)
+      bitmap.close?.()
+    }
     return off.toDataURL('image/png')
   }
 

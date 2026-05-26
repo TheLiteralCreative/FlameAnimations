@@ -13,6 +13,7 @@ interface Props {
   onExport: () => void
   onOpenGallery: () => void
   onOpenHelp: () => void
+  disabled?: boolean
 }
 
 export function Toolbar({
@@ -25,6 +26,7 @@ export function Toolbar({
   onExport,
   onOpenGallery,
   onOpenHelp,
+  disabled,
 }: Props) {
   const { tool, setTool } = useApp()
 
@@ -41,6 +43,7 @@ export function Toolbar({
             className="tool-btn"
             aria-label="Open gallery"
             onClick={onOpenGallery}
+            disabled={disabled}
           >
             <Icon name="photos" />
           </button>
@@ -65,6 +68,7 @@ export function Toolbar({
             aria-pressed={tool.mode === 'draw'}
             aria-label="Brush"
             onClick={() => setTool({ mode: 'draw' })}
+            disabled={disabled}
           >
             <Icon name="brush" />
           </button>
@@ -74,6 +78,7 @@ export function Toolbar({
             aria-pressed={tool.mode === 'erase'}
             aria-label="Eraser"
             onClick={() => setTool({ mode: 'erase' })}
+            disabled={disabled}
           >
             <Icon name="eraser" />
           </button>
@@ -85,7 +90,7 @@ export function Toolbar({
           <button
             type="button"
             className="tool-btn"
-            disabled={!canUndo}
+            disabled={!canUndo || disabled}
             aria-label="Undo"
             onClick={onUndo}
           >
@@ -94,7 +99,7 @@ export function Toolbar({
           <button
             type="button"
             className="tool-btn"
-            disabled={!canRedo}
+            disabled={!canRedo || disabled}
             aria-label="Redo"
             onClick={onRedo}
           >
@@ -103,8 +108,9 @@ export function Toolbar({
           <button
             type="button"
             className="tool-btn"
-            aria-label="Clear canvas"
+            aria-label="Clear frame"
             onClick={onClear}
+            disabled={disabled}
           >
             <Icon name="trash" />
           </button>
@@ -113,13 +119,21 @@ export function Toolbar({
         <div className="action-group save-group">
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn"
             onClick={onSave}
+            disabled={disabled}
+            title="Save current frame to gallery"
           >
             <Icon name="save" />
-            <span>Save</span>
+            <span>Save Frame</span>
           </button>
-          <button type="button" className="btn" onClick={onExport}>
+          <button
+            type="button"
+            className="btn"
+            onClick={onExport}
+            disabled={disabled}
+            title="Download current frame as PNG"
+          >
             <Icon name="download" />
             <span>PNG</span>
           </button>

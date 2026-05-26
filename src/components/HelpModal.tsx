@@ -61,9 +61,29 @@ export function HelpModal({ open, onClose }: Props) {
               <strong>Undo</strong> and <strong>Redo</strong> let you go back
               and forward through your strokes.
             </li>
+          </ul>
+          <h3 className="help-section-title">Make an animation</h3>
+          <ul>
             <li>
-              <strong>Save to Gallery</strong> keeps your art on this device.
-              <strong> Export PNG</strong> downloads a file you can share.
+              Draw a picture, then tap <strong>▶▶</strong> to add a new
+              frame.
+            </li>
+            <li>
+              Tap <strong>▶</strong> to play your animation in a loop. Tap{' '}
+              again to stop.
+            </li>
+            <li>
+              Tap the <strong>onion icon</strong> (top right of the canvas)
+              to see the previous frame faintly underneath — perfect for
+              animating.
+            </li>
+            <li>
+              <strong>Export GIF</strong> turns all your frames into a
+              shareable GIF.
+            </li>
+            <li>
+              <strong>New</strong> starts a brand-new animation (your old
+              one will be deleted — export it first!).
             </li>
           </ul>
           <details>
@@ -80,7 +100,14 @@ export function HelpModal({ open, onClose }: Props) {
                 <kbd>⇧</kbd>+<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> redo
               </li>
               <li>
-                <kbd>S</kbd> save · <kbd>D</kbd> download PNG
+                <kbd>←</kbd> previous frame · <kbd>→</kbd> next frame ·{' '}
+                <kbd>Space</kbd> play/stop
+              </li>
+              <li>
+                <kbd>O</kbd> toggle onion skin
+              </li>
+              <li>
+                <kbd>S</kbd> save frame · <kbd>D</kbd> download PNG
               </li>
             </ul>
           </details>

@@ -29,3 +29,22 @@ export interface SavedArtworkSummary {
   height: number
   thumbnail: string
 }
+
+export interface FrameRecord {
+  id: string
+  blob: Blob
+  thumbnail: string
+}
+
+export interface AnimationDoc {
+  id: string
+  width: number
+  height: number
+  fps: number
+  frames: FrameRecord[]
+  currentIndex: number
+  updatedAt: number
+}
+
+export const MAX_FRAMES = 500
+export const DEFAULT_FPS = 24
