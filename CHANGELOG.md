@@ -4,7 +4,7 @@ All notable changes to FlameAnimations will be documented in this file.
 
 Format follows Keep a Changelog and versions follow SemVer.
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-05-25
 
 ### Added
 - **Frame-based animation:** up to 500 frames per animation, persisted across reloads in IndexedDB.
@@ -23,7 +23,9 @@ Format follows Keep a Changelog and versions follow SemVer.
 - Clear button now clears the **current frame only** (other frames stay safe).
 - IndexedDB upgraded to v2 with new `animations` object store.
 
-## [0.1.0] - 2026-05-25
+## [0.1.0] - 2026-05-25 — Initial MVP
+
+Released and deployed to https://flameanimations.com via Render Static Site.
 
 ### Added
 - Project bootstrap: Vite + React + TypeScript scaffold.
