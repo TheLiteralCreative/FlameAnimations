@@ -27,10 +27,16 @@ export function HelpModal({ open, onClose }: Props) {
         aria-labelledby="help-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-header">
-          <h2 id="help-title">
-            <Icon name="flame" /> Welcome to FlameAnimations
-          </h2>
+        <div className="modal-header help-hero">
+          <div className="help-hero-text">
+            <p className="hero-welcome">
+              Welcome to your very own website Emmett!
+            </p>
+            <h1 id="help-title" className="hero-title">
+              <Icon name="flame" size={32} />
+              <span>FLAME ANIMATIONS</span>
+            </h1>
+          </div>
           <button
             type="button"
             className="icon-btn"
