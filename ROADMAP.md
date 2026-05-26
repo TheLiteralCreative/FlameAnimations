@@ -5,7 +5,7 @@ Path: `ROADMAP.md`
 ## M0 — Project Bootstrap
 - [x] Create Vite React TypeScript app.
 - [ ] Add linting, formatting, and basic test runner.
-- [ ] Add app shell with responsive layout.
+- [x] Add app shell with responsive layout.
 - [x] Add `CHANGELOG.md`.
 - [x] Add README with local iMac hosting instructions.
 
@@ -16,12 +16,12 @@ Acceptance:
 See SPEC §5, §13; ADR-0001, ADR-0004.
 
 ## M1 — Core Drawing MVP
-- [ ] Implement canvas drawing with Pointer Events.
-- [ ] Add color picker and starter palette.
-- [ ] Add brush size control.
-- [ ] Add round and square brush shapes.
-- [ ] Add eraser.
-- [ ] Prevent page scroll while drawing on touch devices.
+- [x] Implement canvas drawing with Pointer Events.
+- [x] Add color picker and starter palette.
+- [x] Add brush size control.
+- [x] Add round and square brush shapes.
+- [x] Add eraser.
+- [x] Prevent page scroll while drawing on touch devices.
 
 Acceptance:
 - Artist can draw smoothly on iPad and laptop.
@@ -30,11 +30,11 @@ Acceptance:
 See SPEC §3, §5, §10, §11; ADR-0001.
 
 ## M2 — History, Export, and Safety
-- [ ] Add undo/redo.
-- [ ] Add clear canvas with confirmation.
-- [ ] Add PNG export using `canvas.toBlob`.
-- [ ] Add filename convention.
-- [ ] Cap undo stack to protect memory.
+- [x] Add undo/redo.
+- [x] Add clear canvas with confirmation.
+- [x] Add PNG export using `canvas.toBlob`.
+- [x] Add filename convention.
+- [x] Cap undo stack to protect memory.
 
 Acceptance:
 - Undo and redo pass Gherkin UC-4.
@@ -43,11 +43,11 @@ Acceptance:
 See SPEC §3, §9, §14; ADR-0002.
 
 ## M3 — Local Gallery
-- [ ] Add IndexedDB wrapper.
-- [ ] Save artwork with thumbnail and full PNG blob.
-- [ ] Add gallery list/grid.
-- [ ] Add load and delete actions.
-- [ ] Add empty/error states.
+- [x] Add IndexedDB wrapper.
+- [x] Save artwork with thumbnail and full PNG blob.
+- [x] Add gallery list/grid.
+- [x] Add load and delete actions.
+- [x] Add empty/error states.
 
 Acceptance:
 - Save → reload page → reopen artwork works on same device/browser.
@@ -59,9 +59,9 @@ See SPEC §3, §5, §9, §10; ADR-0002, ADR-0005.
 - [ ] Add camera/photo import if browser support is adequate.
 - [ ] Add canvas size presets.
 - [ ] Add custom brush presets.
-- [ ] Add keyboard shortcuts.
-- [ ] Add PWA manifest and app icons.
-- [ ] Add simple help overlay.
+- [x] Add keyboard shortcuts.
+- [x] Add PWA manifest and app icons.
+- [x] Add simple help overlay.
 
 Acceptance:
 - Camera/photo import either works on target browsers or is clearly deferred.

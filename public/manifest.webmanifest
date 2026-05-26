@@ -1,0 +1,17 @@
+{
+  "name": "FlameAnimations",
+  "short_name": "FlameAnim",
+  "description": "A digital art kit that grows with your artistic talent.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/flame.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
