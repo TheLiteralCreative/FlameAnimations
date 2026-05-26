@@ -28,23 +28,23 @@ export function HelpModal({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header help-hero">
-          <div className="help-hero-text">
-            <p className="hero-welcome">
-              Welcome to your very own website Emmett!
-            </p>
-            <h1 id="help-title" className="hero-title">
-              <Icon name="flame" size={32} />
-              <span>FLAME ANIMATIONS</span>
-            </h1>
-          </div>
           <button
             type="button"
-            className="icon-btn"
+            className="icon-btn modal-close"
             aria-label="Close help"
             onClick={onClose}
           >
             <Icon name="x" />
           </button>
+          <div className="help-hero-text">
+            <h2 className="hero-welcome">
+              Welcome to your very own website Emmett!
+            </h2>
+            <h1 id="help-title" className="hero-title">
+              <Icon name="flame" size={32} />
+              <span>FLAME ANIMATIONS</span>
+            </h1>
+          </div>
         </div>
         <div className="help-body">
           <p>Draw with a finger, an Apple Pencil, a trackpad, or a mouse.</p>
