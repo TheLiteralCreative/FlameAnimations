@@ -1,7 +1,7 @@
 # FlameAnimations — Forward Plan
 
-**Last updated:** 2026-05-25
-**Current version:** 0.2.0 (M5 — animation shipped)
+**Last updated:** 2026-05-26
+**Current version:** 0.2.1 (M5 hardened — crash + layout fixes)
 **Live at:** https://flameanimations.com
 
 This is a personal project for Emmett (12yo). The plan is intentionally
@@ -26,6 +26,8 @@ Ownership tags:
 - ✓ 2026-05-25 — Render Static Site deployed + custom domain flameanimations.com (Let's Encrypt via Google Trust)
 - ✓ 2026-05-25 — Personalized welcome modal (FLAME ANIMATIONS hero, Dad's note)
 - ✓ 2026-05-25 — M5 animation: frame model, frame deck, filmstrip, onion skin, 24fps playback, GIF export, 500-frame IndexedDB persistence
+- ✓ 2026-05-26 — M5 crash fixes: per-frame undo stacks (Map keyed by frameId), memoized hook returns, stable callback chain, IDB debounce 600→1500ms, StrictMode-safe init
+- ✓ 2026-05-26 — M5 layout fix: ResizeObserver-driven canvas sizing (zero-sized canvas was hiding the drawable surface and onion controls)
 
 ---
 
@@ -37,11 +39,11 @@ What does he ask for? Animation tools live or die on touch feel and
 discoverability — only real use will surface what to build next.
 
 ### Likely M5 polish based on first use [CLAUDE]
-- Per-frame undo history (currently resets when switching frames — annoying if he undoes after navigating)
 - "Duplicate frame" button (great for animation — copy then tweak)
 - "Delete frame" button on the filmstrip thumbs
 - Drag-to-reorder frames in the filmstrip
 - GIF export progress indicator (long animations stall the UI for a few seconds)
+- Frame deletion should also drop that frame's undo history (memory hygiene)
 
 ### M4 leftovers (deferred, decide if still wanted) [TOGETHER]
 - Camera/photo import (`<input type="file" accept="image/*" capture>`) — could be great for tracing photos

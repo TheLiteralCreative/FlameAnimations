@@ -4,6 +4,19 @@ All notable changes to FlameAnimations will be documented in this file.
 
 Format follows Keep a Changelog and versions follow SemVer.
 
+## [0.2.1] - 2026-05-26
+
+### Fixed
+- **Crash on long sessions** — useHistory returned a fresh object every render, and an App-level effect depending on it called `history.reset()` on every change. That created an ImageBitmap-leaking infinite render loop that crashed the tab (especially iPad). Replaced with per-frame undo stacks keyed by frame id, all returned via `useMemo`.
+- **Pointer listener thrashing** — Canvas re-bound its pointer event listeners on every App render because the `anim` object was unstable. Now destructured to stable callbacks; listeners bind once.
+- **Cross-frame undo data loss** — undoing on Frame 2 restored Frame 1's bitmap to the canvas while currentIndex stayed at 2; next commit overwrote Frame 2 with Frame 1's content. Per-frame stacks fix this.
+- **All-grey canvas (no drawable surface)** — the M5 canvas-stack wrapper had no in-flow children (all canvases were `position: absolute`), so it collapsed to 0×0. ResizeObserver on `.canvas-frame` now imperatively sizes the stack to the largest 8:5 box that fits, in a `useLayoutEffect` before paint.
+- IndexedDB persist debounce raised from 600ms to 1500ms to reduce write pressure on iPad for big animations.
+- StrictMode-safe initial animation load (gated by `loadedRef`) prevents double-creating the initial blank frame in dev.
+
+### Changed
+- Undo/redo is now per-frame. Drawing on frame 1, switching to frame 2, then pressing undo only reverts frame 2; coming back to frame 1, your frame 1 history is preserved.
+
 ## [0.2.0] - 2026-05-25
 
 ### Added
