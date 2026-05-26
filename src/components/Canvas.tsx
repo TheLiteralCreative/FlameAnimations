@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useApp } from '../state/AppContext'
 
 interface CanvasProps {
@@ -7,10 +7,14 @@ interface CanvasProps {
   overlay?: ReactNode
 }
 
+const ASPECT = 8 / 5
+
 export function Canvas({ onStrokeEnd, drawingEnabled, overlay }: CanvasProps) {
   const { engine } = useApp()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const onionRef = useRef<HTMLCanvasElement | null>(null)
+  const frameRef = useRef<HTMLDivElement | null>(null)
+  const stackRef = useRef<HTMLDivElement | null>(null)
   const activePointerId = useRef<number | null>(null)
   const enabledRef = useRef(drawingEnabled)
   enabledRef.current = drawingEnabled
@@ -21,6 +25,29 @@ export function Canvas({ onStrokeEnd, drawingEnabled, overlay }: CanvasProps) {
     if (!canvas) return
     engine.attach(canvas, onion ?? undefined)
   }, [engine])
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current
+    const stack = stackRef.current
+    if (!frame || !stack) return
+    const fit = () => {
+      const w = frame.clientWidth
+      const h = frame.clientHeight
+      if (w === 0 || h === 0) return
+      let fw = w
+      let fh = w / ASPECT
+      if (fh > h) {
+        fh = h
+        fw = h * ASPECT
+      }
+      stack.style.width = `${Math.floor(fw)}px`
+      stack.style.height = `${Math.floor(fh)}px`
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(frame)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -73,11 +100,10 @@ export function Canvas({ onStrokeEnd, drawingEnabled, overlay }: CanvasProps) {
   }, [engine, onStrokeEnd])
 
   return (
-    <div className="canvas-frame">
-      <div className="canvas-stack">
-        <div className="canvas-bg" aria-hidden="true" />
-        <canvas ref={onionRef} className="onion-canvas" aria-hidden="true" />
+    <div className="canvas-frame" ref={frameRef}>
+      <div className="canvas-stack" ref={stackRef}>
         <canvas ref={canvasRef} className="drawing-canvas" />
+        <canvas ref={onionRef} className="onion-canvas" aria-hidden="true" />
         {overlay}
       </div>
     </div>
